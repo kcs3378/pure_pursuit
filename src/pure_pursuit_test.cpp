@@ -54,8 +54,18 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
     //set data from ros param
     nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
 
-    //subscriber for odometry data from particle filter
+    //subscriber and publisher
     sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
+    pub_ack = nh_c.advertise<ackermann_msgs::AckermannDriveStamped>("/vesc/high_level/ackermann_cmd_mux/input/nav_1", 5);
+
+    pub_driving_msg.header.stamp = ros::Time::now();
+    pub_driving_msg.header.frame_id = "base_link";
+    pub_driving_msg.drive.speed = 0;
+    pub_driving_msg.drive.acceleration = 1;
+    pub_driving_msg.drive.jerk = 1;
+    pub_driving_msg.drive.steering_angle = 0;
+    pub_driving_msg.drive.steering_angle_velocity = 1;
+
 }
 
 Pure_pursuit::~Pure_pursuit()
@@ -143,6 +153,9 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
     transformed_desired_point = transformPoint(current_position, desired_point);
 
     ROS_INFO("tfpoint - x : %f      y : %f", transformed_desired_point.x, transformed_desired_point.y);
+    
+    find_path();
+    drive_test();
     std::cout<<std::endl;
 }
 
@@ -201,5 +214,42 @@ void Pure_pursuit::find_desired_wp(double length)
     ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
 
 }
+
+// 나중에 publisher 를 새로 만들게 되면 그땐 거리 다시 구하는거 추가해야할지 고려
+void Pure_pursuit::find_path()
+{
+    if(transformed_desired_point.x > 0)
+    {
+        goal_path_radius = pow(actual_lookahead, 2)/(2*transformed_desired_point.x);
+        goal_path_theta = asin( transformed_desired_point.y/goal_path_radius );
+        steering_direction = 0;
+        ROS_INFO("right cornering");
+    }
+    else
+    {
+        goal_path_radius = pow(actual_lookahead, 2)/(-2*transformed_desired_point.x);
+        goal_path_theta = asin( transformed_desired_point.y/goal_path_radius );
+        steering_direction = 1;
+        ROS_INFO("left cornering");
+    }
+    ROS_INFO("path radius : %f     path theta : %f", goal_path_radius, goal_path_theta);
+}
+
+
+void Pure_pursuit::drive_test()
+{
+    pub_driving_msg.drive.speed = 1.0;
+    if(steering_direction == 0)
+    {
+        pub_driving_msg.drive.steering_angle = -goal_path_theta;
+    }
+    else
+    {
+        pub_driving_msg.drive.steering_angle = goal_path_theta;
+    }
+
+    pub_ack.publish(pub_driving_msg);
+}
+
 
 } //namespace pure_pursuit

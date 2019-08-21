@@ -25,6 +25,7 @@ private:
     ros::NodeHandle nh_c;
     ros::Rate loop_rate;
     ros::Subscriber sub_pf_odom;
+    ros::Publisher pub_ack;
 
     //for csv file
     std::fstream fs;
@@ -41,6 +42,11 @@ private:
     double actual_lookahead;
     Point desired_point;
     Point transformed_desired_point;
+    double goal_path_theta;
+    double goal_path_radius;
+    bool steering_direction; //0 : right, 1 : left
+
+    ackermann_msgs::AckermannDriveStamped pub_driving_msg;
 
     //for current state
     Point current_position;
@@ -55,6 +61,8 @@ public:
     void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
     void find_nearest_wp();
     void find_desired_wp(double length);
+    void find_path();
+    void drive_test();
 };
 
 double getDistance(Point A, Point B);
