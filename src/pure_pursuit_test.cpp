@@ -10,6 +10,7 @@
 
 #define PI 3.141592
 
+
 typedef struct _Point{
     double x;
     double y;
@@ -24,26 +25,34 @@ private:
     ros::Rate loop_rate;
     ros::Subscriber sub_pf_odom;
 
-    
+    //for csv file
     std::fstream fs;
     std::string str_buf;
     std::string path_temp;
     char * filepath;
 
-    float wp_temp;
+    //for waypoints
     int num_points;
     Point * waypoints;
 
+    //for driving setting
+    double lookahead;
+
+    //for current state
     Point current_position;
+    int current_wp_index;
 
 public:
     Pure_pursuit(const ros::NodeHandle h)
-    :nh_c(h), loop_rate(60)
+    :nh_c(h), loop_rate(60), current_wp_index(0)
     {
         //set waypoint scv file path from ros parameter
         nh_c.getParam("/pure_pursuit/waypoints/filepath", path_temp);
         filepath = new char[ path_temp.length()+1 ];
         strcpy(filepath, path_temp.c_str());
+
+        //set data from ros param
+        nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
 
         //subscriber for odometry data from particle filter
         sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
@@ -59,6 +68,7 @@ public:
     void get_waypoint();
     void count_waypoint();
     void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
+    void find_nearest_wp();
     
 };
 
@@ -121,6 +131,7 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
     double qx, qy, qz, qw;
     double siny_cosp, cosy_cosp;
 
+    // transform quaternion to euler angle -> only for yaw(z-axis)
     qx = msg_sub -> pose.pose.orientation.x;
     qy = msg_sub -> pose.pose.orientation.y;
     qz = msg_sub -> pose.pose.orientation.z;
@@ -128,7 +139,7 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
 
     siny_cosp = 2.0 * ( qw*qz + qx*qy );
     cosy_cosp = 1.0 - 2.0 * ( qy*qy + qz*qz);
-
+    //z-axis angle
     current_position.theta = atan2(siny_cosp, cosy_cosp);
 
     current_position.x = msg_sub -> pose.pose.position.x;
@@ -136,6 +147,12 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
 
 
 }
+
+void Pure_pursuit::find_nearest_wp()
+{
+
+}
+
 
 
 int main(int argc, char **argv)
