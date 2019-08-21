@@ -1,0 +1,6 @@
+waypoints:
+  filepath: /home/pil/waypoints/wp-2019-08-20-06-06-10.csv
+
+
+drivig:
+  look_ahead: 1
