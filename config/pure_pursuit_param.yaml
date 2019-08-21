@@ -1,6 +1,6 @@
 waypoints:
-  filepath: /home/pil/waypoints/wp-2019-08-20-06-06-10.csv
+  filepath: /home/pil/waypoints/wp-2019-08-20-06-06-34.csv
 
 
 drivig:
-  look_ahead: 1
+  look_ahead: 0.5

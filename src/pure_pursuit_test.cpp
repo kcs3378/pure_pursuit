@@ -9,6 +9,7 @@
 #include <cmath>
 
 #define PI 3.141592
+#define CURRENT_WP_CHECK_OFFSET 10
 
 
 typedef struct _Point{
@@ -40,16 +41,19 @@ private:
 
     //for current state
     Point current_position;
-    int current_wp_index;
+    int wp_index_current;
 
 public:
     Pure_pursuit(const ros::NodeHandle h)
-    :nh_c(h), loop_rate(60), current_wp_index(0)
+    :nh_c(h), loop_rate(60), wp_index_current(0)
     {
         //set waypoint scv file path from ros parameter
         nh_c.getParam("/pure_pursuit/waypoints/filepath", path_temp);
         filepath = new char[ path_temp.length()+1 ];
         strcpy(filepath, path_temp.c_str());
+        //get waypoints data from csv file
+        get_waypoint();
+
 
         //set data from ros param
         nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
@@ -57,7 +61,6 @@ public:
         //subscriber for odometry data from particle filter
         sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
 
-        get_waypoint();
 
     }
     ~Pure_pursuit()
@@ -84,8 +87,7 @@ void Pure_pursuit::get_waypoint()
 
     while(!fs.eof())
     {
-        ROS_INFO("test1");
-        
+      
         getline(fs, str_buf, ',');
         waypoints[i].x = std::strtof(str_buf.c_str(),0);
         getline(fs, str_buf, ',');
@@ -95,7 +97,6 @@ void Pure_pursuit::get_waypoint()
         getline(fs, str_buf);
         ROS_INFO("get %dth data", i+1);
 
-        ROS_INFO("test2");
         i++;
     }
     ROS_INFO("test3");
@@ -113,7 +114,6 @@ void Pure_pursuit::count_waypoint()
 {
     num_points = 0;
     fs.open(filepath, std::ios::in);
-    ROS_INFO("openfile\n");
     while(!fs.eof())
     {
         getline(fs, str_buf, ',');
@@ -126,6 +126,10 @@ void Pure_pursuit::count_waypoint()
     fs.close();
 }
 
+
+/*
+Odom data from particle filter to current position data
+*/
 void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
 {
     double qx, qy, qz, qw;
@@ -145,12 +149,47 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
     current_position.x = msg_sub -> pose.pose.position.x;
     current_position.y = msg_sub -> pose.pose.position.y;
 
-
+    find_nearest_wp();
 }
 
+
+/*
+Set the wp_index_current to nearest waypoint from the car
+*/
 void Pure_pursuit::find_nearest_wp()
 {
+    double nearest_distance;
+    double temp_distance;
+    double dx, dy;
 
+    int wp_index_temp = wp_index_current;
+    
+    dx = waypoints[wp_index_temp].x - current_position.x;
+    dy = waypoints[wp_index_temp].y - current_position.y;
+    
+    nearest_distance = sqrt( pow(dx , 2) + pow(dy, 2));
+    
+    while(1)
+    {
+        dx = waypoints[wp_index_temp].x - current_position.x;
+        dy = waypoints[wp_index_temp].y - current_position.y;
+        temp_distance = sqrt( pow(dx, 2) + pow(dy, 2));
+        //ROS_INFO("temp distance : %f", temp_distance);
+
+        if(temp_distance < nearest_distance)
+        {
+            nearest_distance = temp_distance;
+            wp_index_current = wp_index_temp;
+        }
+        else if(temp_distance > nearest_distance + CURRENT_WP_CHECK_OFFSET | wp_index_temp > num_points) break; 
+
+        wp_index_temp++;
+    }
+
+    ROS_INFO("Nearest wp : %dth wp", wp_index_current+1);
+    ROS_INFO("WP Position - x:%f   y:%f", waypoints[wp_index_current].x, waypoints[wp_index_current].y);
+    ROS_INFO("CR Position - x:%f   y:%f", current_position.x, current_position.y);
+    ROS_INFO("distacne : %f", nearest_distance);
 }
 
 
@@ -162,7 +201,7 @@ int main(int argc, char **argv)
 
     Pure_pursuit obj(nh);
 
-    
+    ros::spin();
 
     return 0;
 
