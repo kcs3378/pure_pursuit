@@ -12,6 +12,34 @@
 namespace pure_pursuit
 {
 
+double getDistance(Point A, Point B)
+{
+    double dx, dy;
+    dx = A.x - B.x;
+    dy = A.y - B.y;
+    return sqrt( pow(dx,2) + pow(dy,2));
+}
+
+Point transformPoint(Point origin_point, Point target_point)
+{
+    Point tf_point;
+    double dx, dy, theta, dtheta;
+    
+    theta = PI/2 - origin_point.theta;
+
+    dx = target_point.x - origin_point.x;
+    dy = target_point.y - origin_point.y;
+    dtheta = target_point.theta + theta;
+
+    tf_point.x = dx * cos(theta) - dy * sin(theta);
+    tf_point.y = dx * sin(theta) + dy * cos(theta);
+    tf_point.theta = dtheta;
+
+    return tf_point;
+
+}
+
+
 Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
 :nh_c(h), loop_rate(60), wp_index_current(0)
 {
@@ -111,6 +139,11 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
     current_position.y = msg_sub -> pose.pose.position.y;
 
     find_nearest_wp();
+    find_desired_wp(lookahead);
+    transformed_desired_point = transformPoint(current_position, desired_point);
+
+    ROS_INFO("tfpoint - x : %f      y : %f", transformed_desired_point.x, transformed_desired_point.y);
+    std::cout<<std::endl;
 }
 
 
@@ -121,20 +154,16 @@ void Pure_pursuit::find_nearest_wp()
 {
     double nearest_distance;
     double temp_distance;
-    double dx, dy;
 
     int wp_index_temp = wp_index_current;
     
-    dx = waypoints[wp_index_temp].x - current_position.x;
-    dy = waypoints[wp_index_temp].y - current_position.y;
-    
-    nearest_distance = sqrt( pow(dx , 2) + pow(dy, 2));
+    nearest_distance = getDistance(waypoints[wp_index_temp], current_position);
     
     while(1)
     {
-        dx = waypoints[wp_index_temp].x - current_position.x;
-        dy = waypoints[wp_index_temp].y - current_position.y;
-        temp_distance = sqrt( pow(dx, 2) + pow(dy, 2));
+        wp_index_temp++;
+     
+        temp_distance = getDistance(waypoints[wp_index_temp], current_position);
         //ROS_INFO("temp distance : %f", temp_distance);
 
         if(temp_distance < nearest_distance)
@@ -143,8 +172,6 @@ void Pure_pursuit::find_nearest_wp()
             wp_index_current = wp_index_temp;
         }
         else if(temp_distance > nearest_distance + CURRENT_WP_CHECK_OFFSET | wp_index_temp > num_points) break; 
-
-        wp_index_temp++;
     }
 
     ROS_INFO("Nearest wp : %dth wp", wp_index_current+1);
@@ -153,10 +180,26 @@ void Pure_pursuit::find_nearest_wp()
     ROS_INFO("distacne : %f", nearest_distance);
 }
 
-void Pure_pursuit::find_desired_wp(double L)
+void Pure_pursuit::find_desired_wp(double length)
 {
     int wp_index_temp;
     double distance;
+    wp_index_temp = wp_index_current;
+    while(1)
+    {
+        distance = getDistance(waypoints[wp_index_temp], current_position);
+        if(distance >= length)
+        {
+            desired_point = waypoints[wp_index_temp];
+            actual_lookahead = distance;
+            break;
+        }
+        wp_index_temp++;
+    }
+    ROS_INFO("desired point : %dth point", wp_index_temp);
+    ROS_INFO("actual_lookahead : %f, lookahead : %f", actual_lookahead, lookahead);
+    ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
+
 }
 
 } //namespace pure_pursuit

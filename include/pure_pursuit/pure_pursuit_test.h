@@ -36,13 +36,16 @@ private:
     int num_points;
     Point * waypoints;
 
-    //for driving setting
+    //for driving
     double lookahead;
+    double actual_lookahead;
+    Point desired_point;
+    Point transformed_desired_point;
 
     //for current state
     Point current_position;
     int wp_index_current;
-    int wp_index_desired;
+
 
 public:
     Pure_pursuit(const ros::NodeHandle h);
@@ -51,8 +54,12 @@ public:
     void count_waypoint();
     void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
     void find_nearest_wp();
-    void find_desired_wp(double L);
+    void find_desired_wp(double length);
 };
+
+double getDistance(Point A, Point B);
+Point transformPoint(Point origin_point, Point target_point);
+
 
 } // namespace pure_pursuit
 
