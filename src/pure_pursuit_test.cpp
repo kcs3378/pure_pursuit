@@ -6,13 +6,14 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <cmath>
 
 #define PI 3.141592
 
 typedef struct _Point{
-    float x;
-    float y;
-    float theta;
+    double x;
+    double y;
+    double theta;
 } Point;
 
 
@@ -117,8 +118,23 @@ void Pure_pursuit::count_waypoint()
 
 void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
 {
+    double qx, qy, qz, qw;
+    double siny_cosp, cosy_cosp;
+
+    qx = msg_sub -> pose.pose.orientation.x;
+    qy = msg_sub -> pose.pose.orientation.y;
+    qz = msg_sub -> pose.pose.orientation.z;
+    qw = msg_sub -> pose.pose.orientation.w;
+
+    siny_cosp = 2.0 * ( qw*qz + qx*qy );
+    cosy_cosp = 1.0 - 2.0 * ( qy*qy + qz*qz);
+
+    current_position.theta = atan2(siny_cosp, cosy_cosp);
+
     current_position.x = msg_sub -> pose.pose.position.x;
     current_position.y = msg_sub -> pose.pose.position.y;
+
+
 }
 
 
