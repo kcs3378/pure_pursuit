@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "pure_pursuit/pure_pursuit_test.h"
 
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "nav_msgs/Odometry.h"
@@ -8,72 +9,32 @@
 #include <string.h>
 #include <cmath>
 
-#define PI 3.141592
-#define CURRENT_WP_CHECK_OFFSET 10
-
-
-typedef struct _Point{
-    double x;
-    double y;
-    double theta;
-} Point;
-
-
-class Pure_pursuit
+namespace pure_pursuit
 {
-private:
-    ros::NodeHandle nh_c;
-    ros::Rate loop_rate;
-    ros::Subscriber sub_pf_odom;
 
-    //for csv file
-    std::fstream fs;
-    std::string str_buf;
-    std::string path_temp;
-    char * filepath;
-
-    //for waypoints
-    int num_points;
-    Point * waypoints;
-
-    //for driving setting
-    double lookahead;
-
-    //for current state
-    Point current_position;
-    int wp_index_current;
-
-public:
-    Pure_pursuit(const ros::NodeHandle h)
-    :nh_c(h), loop_rate(60), wp_index_current(0)
-    {
-        //set waypoint scv file path from ros parameter
-        nh_c.getParam("/pure_pursuit/waypoints/filepath", path_temp);
-        filepath = new char[ path_temp.length()+1 ];
-        strcpy(filepath, path_temp.c_str());
-        //get waypoints data from csv file
-        get_waypoint();
+Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
+:nh_c(h), loop_rate(60), wp_index_current(0)
+{
+    //set waypoint scv file path from ros parameter
+    nh_c.getParam("/pure_pursuit/waypoints/filepath", path_temp);
+    filepath = new char[ path_temp.length()+1 ];
+    strcpy(filepath, path_temp.c_str());
+    //get waypoints data from csv file
+    get_waypoint();
 
 
-        //set data from ros param
-        nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
+    //set data from ros param
+    nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
 
-        //subscriber for odometry data from particle filter
-        sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
+    //subscriber for odometry data from particle filter
+    sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
+}
 
-
-    }
-    ~Pure_pursuit()
-    {
-        delete []filepath;
-        delete []waypoints;
-    }
-    void get_waypoint();
-    void count_waypoint();
-    void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
-    void find_nearest_wp();
-    
-};
+Pure_pursuit::~Pure_pursuit()
+{
+    delete []filepath;
+    delete []waypoints;
+}
 
 void Pure_pursuit::get_waypoint()
 {
@@ -192,17 +153,10 @@ void Pure_pursuit::find_nearest_wp()
     ROS_INFO("distacne : %f", nearest_distance);
 }
 
-
-
-int main(int argc, char **argv)
+void Pure_pursuit::find_desired_wp(double L)
 {
-    ros::init(argc, argv, "pure_pursuit");
-    ros::NodeHandle nh;
-
-    Pure_pursuit obj(nh);
-
-    ros::spin();
-
-    return 0;
-
+    int wp_index_temp;
+    double distance;
 }
+
+} //namespace pure_pursuit
