@@ -20,6 +20,7 @@ double getDistance(Point A, Point B)
     return sqrt( pow(dx,2) + pow(dy,2));
 }
 
+
 Point transformPoint(Point origin_point, Point target_point)
 {
     Point tf_point;
@@ -52,7 +53,10 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
 
 
     //set data from ros param
-    nh_c.getParam("/pure_pursuit/driving/look_ahead", lookahead);
+    nh_c.getParam("/pure_pursuit/driving/max_look_ahead", lookahead_max);
+    nh_c.getParam("/pure_pursuit/driving/min_look_ahead", lookahead_min);
+    nh_c.getParam("/pure_pursuit/driving/max_speed", speed_max);
+    nh_c.getParam("/pure_pursuit/driving/min_speed", speed_min);
 
     //subscriber and publisher
     sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
@@ -148,15 +152,7 @@ void Pure_pursuit::subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub)
     current_position.x = msg_sub -> pose.pose.position.x;
     current_position.y = msg_sub -> pose.pose.position.y;
 
-    find_nearest_wp();
-    find_desired_wp(lookahead);
-    transformed_desired_point = transformPoint(current_position, desired_point);
-
-    ROS_INFO("tfpoint - x : %f      y : %f", transformed_desired_point.x, transformed_desired_point.y);
     
-    find_path();
-    drive_test();
-    std::cout<<std::endl;
 }
 
 
@@ -193,7 +189,26 @@ void Pure_pursuit::find_nearest_wp()
     ROS_INFO("distacne : %f", nearest_distance);
 }
 
-void Pure_pursuit::find_desired_wp(double length)
+
+void Pure_pursuit::get_dx()
+{
+    Point wp_min, wp_max;
+    wp_min = find_lookahead_wp(lookahead_min);
+    wp_max = find_lookahead_wp(lookahead_max);
+
+    wp_min = transformPoint(current_position, wp_min);
+    wp_max = transformPoint(current_position, wp_max);
+
+    dx = wp_max.x - wp_min.x;
+}
+
+void Pure_pursuit::get_lookahead_desired()
+{
+    lookahead_desired = exp(-(abs(dx)-log(lookahead_max - lookahead_min))) + lookahead_min;
+}
+
+
+Point Pure_pursuit::find_lookahead_wp(double length)
 {
     int wp_index_temp;
     double distance;
@@ -201,7 +216,24 @@ void Pure_pursuit::find_desired_wp(double length)
     while(1)
     {
         distance = getDistance(waypoints[wp_index_temp], current_position);
-        if(distance >= length)
+        
+        if(distance >= length) break;
+
+        wp_index_temp++;
+    }
+    return waypoints[wp_index_temp];
+}
+
+
+void Pure_pursuit::find_desired_wp()
+{
+    int wp_index_temp;
+    double distance;
+    wp_index_temp = wp_index_current;
+    while(1)
+    {
+        distance = getDistance(waypoints[wp_index_temp], current_position);
+        if(distance >= lookahead_desired)
         {
             desired_point = waypoints[wp_index_temp];
             actual_lookahead = distance;
@@ -210,10 +242,11 @@ void Pure_pursuit::find_desired_wp(double length)
         wp_index_temp++;
     }
     ROS_INFO("desired point : %dth point", wp_index_temp);
-    ROS_INFO("actual_lookahead : %f, lookahead : %f", actual_lookahead, lookahead);
+    ROS_INFO("actual_lookahead : %f, lookahead_desired : %f", actual_lookahead, lookahead_desired);
     ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
 
 }
+
 
 // 나중에 publisher 를 새로 만들게 되면 그땐 거리 다시 구하는거 추가해야할지 고려
 void Pure_pursuit::find_path()
@@ -235,10 +268,39 @@ void Pure_pursuit::find_path()
     ROS_INFO("path radius : %f     path theta : %f", goal_path_radius, goal_path_theta);
 }
 
-
-void Pure_pursuit::drive_test()
+void Pure_pursuit::drivingCallback()
 {
-    pub_driving_msg.drive.speed = 1.0;
+    while(ros::ok())
+    {
+        ros::spinOnce();
+        pub_driving_msg.header.stamp = ros::Time::now();
+
+        find_nearest_wp();
+        get_dx();
+        get_lookahead_desired();
+        find_desired_wp();
+        
+        transformed_desired_point = transformPoint(current_position, desired_point);
+
+        ROS_INFO("tfpoint - x : %f      y : %f", transformed_desired_point.x, transformed_desired_point.y);
+    
+        find_path();
+        setSteeringAngle();
+        setSpeed();
+        pub_ack.publish(pub_driving_msg);
+
+        ROS_INFO("send speed %f, servo %f", pub_driving_msg.drive.speed, pub_driving_msg.drive.steering_angle);
+
+        std::cout<<std::endl;
+
+        loop_rate.sleep();
+    }
+}
+
+
+
+void Pure_pursuit::setSteeringAngle()
+{
     if(steering_direction == 0)
     {
         pub_driving_msg.drive.steering_angle = -goal_path_theta;
@@ -248,7 +310,11 @@ void Pure_pursuit::drive_test()
         pub_driving_msg.drive.steering_angle = goal_path_theta;
     }
 
-    pub_ack.publish(pub_driving_msg);
+}
+
+void Pure_pursuit::setSpeed()
+{
+    pub_driving_msg.drive.speed = exp(-(abs(dx)-log(speed_max - speed_min))) + speed_min;
 }
 
 

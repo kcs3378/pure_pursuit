@@ -7,7 +7,7 @@
 #include "nav_msgs/Odometry.h"
 
 #define PI 3.141592
-#define CURRENT_WP_CHECK_OFFSET 5
+#define CURRENT_WP_CHECK_OFFSET 7
 
 namespace pure_pursuit
 {
@@ -38,8 +38,13 @@ private:
     Point * waypoints;
 
     //for driving
-    double lookahead;
+    double lookahead_max;
+    double lookahead_min;
+    double lookahead_desired;
+    double dx;      //dx between lookahead_max point and lookahead_min point
     double actual_lookahead;
+    double speed_max;
+    double speed_min;
     Point desired_point;
     Point transformed_desired_point;
     double goal_path_theta;
@@ -60,9 +65,14 @@ public:
     void count_waypoint();
     void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
     void find_nearest_wp();
-    void find_desired_wp(double length);
+    Point find_lookahead_wp(double lenght);
+    void get_dx();
+    void get_lookahead_desired();
+    void find_desired_wp();
     void find_path();
-    void drive_test();
+    void drivingCallback();
+    void setSteeringAngle();
+    void setSpeed();
 };
 
 double getDistance(Point A, Point B);

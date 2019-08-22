@@ -8,8 +8,8 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     pure_pursuit::Pure_pursuit obj(nh);
+    obj.drivingCallback();
 
-    ros::spin();
 
     return 0;
 
