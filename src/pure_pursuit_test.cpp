@@ -95,10 +95,10 @@ void Pure_pursuit::get_waypoint()
         waypoints[i].x = std::strtof(str_buf.c_str(),0);
         getline(fs, str_buf, ',');
         waypoints[i].y = std::strtof(str_buf.c_str(),0);
-        getline(fs, str_buf, ',');
-        waypoints[i].theta = std::strtof(str_buf.c_str(),0);
+        //getline(fs, str_buf, ',');
         getline(fs, str_buf);
-        ROS_INFO("get %dth data", i+1);
+	waypoints[i].theta = std::strtof(str_buf.c_str(),0);        
+	ROS_INFO("get %dth data", i+1);
 
         i++;
     }
@@ -109,7 +109,7 @@ void Pure_pursuit::get_waypoint()
     {
         ROS_INFO("%dth line x:%f y:%f theta:%f", i+1, waypoints[i].x, waypoints[i].y, waypoints[i].theta);
     }
-
+    ROS_INFO("FINISH PRINTING WAYPOINTS");
 
 }
 
@@ -121,7 +121,7 @@ void Pure_pursuit::count_waypoint()
     {
         getline(fs, str_buf, ',');
         getline(fs, str_buf, ',');
-        getline(fs, str_buf, ',');
+//        getline(fs, str_buf, ',');
         getline(fs, str_buf);
 
         num_points++;
@@ -164,8 +164,8 @@ void Pure_pursuit::find_nearest_wp()
     double nearest_distance;
     double temp_distance;
 
-    int wp_index_temp = wp_index_current;
-    
+    int wp_index_temp = wp_index_current;    
+
     nearest_distance = getDistance(waypoints[wp_index_temp], current_position);
     
     while(1)
@@ -175,14 +175,13 @@ void Pure_pursuit::find_nearest_wp()
         if(wp_index_temp >= num_points) wp_index_temp = 0;
 
         temp_distance = getDistance(waypoints[wp_index_temp], current_position);
-        //ROS_INFO("temp distance : %f", temp_distance);
 
         if(temp_distance < nearest_distance)
         {
             nearest_distance = temp_distance;
             wp_index_current = wp_index_temp;
         }
-        else if(temp_distance > nearest_distance + CURRENT_WP_CHECK_OFFSET | wp_index_temp > num_points) break; 
+        else if(temp_distance > (nearest_distance + CURRENT_WP_CHECK_OFFSET) || (wp_index_temp == wp_index_current)){ break; } 
     }
 
     ROS_INFO("Nearest wp : %dth wp", wp_index_current+1);
@@ -247,9 +246,9 @@ void Pure_pursuit::find_desired_wp()
         }
         wp_index_temp++;
     }
-    ROS_INFO("desired point : %dth point", wp_index_temp);
+    ROS_INFO("desired point : %dth point", wp_index_temp+1);
     ROS_INFO("lookahead - actual : %f,  desired : %f", actual_lookahead, lookahead_desired);
-//    ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
+    ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
 
 }
 
@@ -276,11 +275,11 @@ void Pure_pursuit::find_path()
 
 void Pure_pursuit::drivingCallback()
 {
+    ROS_INFO("start publishing");
     while(ros::ok())
     {
         ros::spinOnce();
         pub_driving_msg.header.stamp = ros::Time::now();
-
         find_nearest_wp();
         get_dx();
         ROS_INFO("dx value = %f,  abs(dx) %f", dx, fabs(dx));
