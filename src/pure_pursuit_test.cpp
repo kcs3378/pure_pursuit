@@ -81,7 +81,7 @@ Pure_pursuit::~Pure_pursuit()
 void Pure_pursuit::get_waypoint()
 {
     count_waypoint();
-    waypoints = new Point[num_points+1];
+    waypoints = new Point[ num_points ];
 
     fs.open(filepath, std::ios::in);
     ROS_INFO("openfile\n");
@@ -172,6 +172,8 @@ void Pure_pursuit::find_nearest_wp()
     {
         wp_index_temp++;
      
+        if(wp_index_temp >= num_points) wp_index_temp = 0;
+
         temp_distance = getDistance(waypoints[wp_index_temp], current_position);
         //ROS_INFO("temp distance : %f", temp_distance);
 
@@ -204,7 +206,7 @@ void Pure_pursuit::get_dx()
 
 void Pure_pursuit::get_lookahead_desired()
 {
-    lookahead_desired = exp(-(abs(dx)-log(lookahead_max - lookahead_min))) + lookahead_min;
+    lookahead_desired = exp(-(DX_GAIN*fabs(dx)-log(lookahead_max - lookahead_min))) + lookahead_min;
 }
 
 
@@ -215,6 +217,8 @@ Point Pure_pursuit::find_lookahead_wp(double length)
     wp_index_temp = wp_index_current;
     while(1)
     {
+        if(wp_index_temp >= num_points) wp_index_temp = 0;
+
         distance = getDistance(waypoints[wp_index_temp], current_position);
         
         if(distance >= length) break;
@@ -232,6 +236,8 @@ void Pure_pursuit::find_desired_wp()
     wp_index_temp = wp_index_current;
     while(1)
     {
+        if(wp_index_temp >= num_points) wp_index_temp = 0;
+
         distance = getDistance(waypoints[wp_index_temp], current_position);
         if(distance >= lookahead_desired)
         {
@@ -242,8 +248,8 @@ void Pure_pursuit::find_desired_wp()
         wp_index_temp++;
     }
     ROS_INFO("desired point : %dth point", wp_index_temp);
-    ROS_INFO("actual_lookahead : %f, lookahead_desired : %f", actual_lookahead, lookahead_desired);
-    ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
+    ROS_INFO("lookahead - actual : %f,  desired : %f", actual_lookahead, lookahead_desired);
+//    ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
 
 }
 
@@ -277,6 +283,7 @@ void Pure_pursuit::drivingCallback()
 
         find_nearest_wp();
         get_dx();
+        ROS_INFO("dx value = %f,  abs(dx) %f", dx, fabs(dx));
         get_lookahead_desired();
         find_desired_wp();
         
@@ -314,7 +321,7 @@ void Pure_pursuit::setSteeringAngle()
 
 void Pure_pursuit::setSpeed()
 {
-    pub_driving_msg.drive.speed = exp(-(abs(dx)-log(speed_max - speed_min))) + speed_min;
+    pub_driving_msg.drive.speed = exp(-(DX_GAIN*fabs(dx)-log(speed_max - speed_min))) + speed_min;
 }
 
 

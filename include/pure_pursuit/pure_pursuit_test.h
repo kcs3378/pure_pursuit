@@ -8,6 +8,7 @@
 
 #define PI 3.141592
 #define CURRENT_WP_CHECK_OFFSET 7
+#define DX_GAIN 2.5
 
 namespace pure_pursuit
 {

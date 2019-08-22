@@ -1,9 +1,9 @@
 waypoints:
-  filepath: /home/pil/waypoints/wp-2019-08-20-06-06-34.csv
+  filepath: /home/pil/waypoints/porto_1.csv
 
 
 driving:
-  max_look_ahead: 1.5
-  min_look_ahead: 0.5
-  max_speed : 2
-  min_speed : 1
+  max_look_ahead: 3.5
+  min_look_ahead: 1.5
+  max_speed : 3.0
+  min_speed : 1.0
