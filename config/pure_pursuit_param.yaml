@@ -5,5 +5,5 @@ waypoints:
 driving:
   max_look_ahead: 1.0
   min_look_ahead: 0.5
-  max_speed : 1.5
-  min_speed : 0.5
+  max_speed : 2.5
+  min_speed : 1.0
