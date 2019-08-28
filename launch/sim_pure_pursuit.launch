@@ -1,0 +1,11 @@
+<launch>
+
+    <node name="pure_pursuit" pkg="pure_pursuit" type="pure_pursuit_node" output="screen">
+        <rosparam command="load" file="$(find pure_pursuit)/config/pure_pursuit_param.yaml" />
+        <remap from="/vesc/high_level/ackermann_cmd_mux/input/nav_1" to="/pure_pursuit_drive" />
+
+    </node>
+
+
+
+</launch>

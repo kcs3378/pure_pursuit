@@ -44,13 +44,14 @@ Point transformPoint(Point origin_point, Point target_point)
 Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
 :nh_c(h), loop_rate(60), wp_index_current(0)
 {
+    ROS_INFO("STARTING NODE");
     //set waypoint scv file path from ros parameter
     nh_c.getParam("/pure_pursuit/waypoints/filepath", path_temp);
     filepath = new char[ path_temp.length()+1 ];
     strcpy(filepath, path_temp.c_str());
     //get waypoints data from csv file
     get_waypoint();
-
+    ROS_INFO("GET WAYPOINTS");
 
     //set data from ros param
     nh_c.getParam("/pure_pursuit/driving/max_look_ahead", lookahead_max);
