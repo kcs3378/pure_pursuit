@@ -1,9 +1,9 @@
 waypoints:
-  filepath: /home/pil/waypoints/track_black.csv
+  filepath: /home/pil/waypoints/track_black1.csv
 
 
 driving:
-  max_look_ahead: 1.0
+  max_look_ahead: 1.5
   min_look_ahead: 0.5
   max_speed : 2.5
   min_speed : 1.0

@@ -261,7 +261,7 @@ void Pure_pursuit::find_path()
     {
         goal_path_radius = pow(actual_lookahead, 2)/(2*transformed_desired_point.x);
         goal_path_theta = asin( transformed_desired_point.y/goal_path_radius );
-        steering_direction = 0;
+        steering_direction = -1;
         ROS_INFO("right cornering");
     }
     else
@@ -308,14 +308,21 @@ void Pure_pursuit::drivingCallback()
 
 void Pure_pursuit::setSteeringAngle()
 {
-    if(steering_direction == 0)
+
+    steering_angle = atan( RACECAR_LENGTH / goal_path_radius );
+    ROS_INFO("steering angle : %f", steering_angle);
+    pub_driving_msg.drive.steering_angle = (double)steering_direction * steering_angle;
+
+/*    
+    if(steering_direction == -1)
     {
-        pub_driving_msg.drive.steering_angle = -goal_path_theta;
+        pub_driving_msg.drive.steering_angle = -goal_path_theta*0.5;
     }
     else
     {
-        pub_driving_msg.drive.steering_angle = goal_path_theta;
+        pub_driving_msg.drive.steering_angle = goal_path_theta*0.5;
     }
+*/  
 
 }
 

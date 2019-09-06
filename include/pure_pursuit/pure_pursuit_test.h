@@ -7,8 +7,9 @@
 #include "nav_msgs/Odometry.h"
 
 #define PI 3.141592
-#define CURRENT_WP_CHECK_OFFSET 7
+#define CURRENT_WP_CHECK_OFFSET 10
 #define DX_GAIN 2.5
+#define RACECAR_LENGTH 0.325
 
 namespace pure_pursuit
 {
@@ -50,7 +51,8 @@ private:
     Point transformed_desired_point;
     double goal_path_theta;
     double goal_path_radius;
-    bool steering_direction; //0 : right, 1 : left
+    int steering_direction; //-1 : right, 1 : left
+    double steering_angle;
 
     ackermann_msgs::AckermannDriveStamped pub_driving_msg;
 
