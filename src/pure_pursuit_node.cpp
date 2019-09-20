@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "pure_pursuit/pure_pursuit_test.h"
+#include "pure_pursuit/pure_pursuit.h"
 
 
 int main(int argc, char **argv)
@@ -8,7 +8,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     pure_pursuit::Pure_pursuit obj(nh);
-    obj.drivingCallback();
+    obj.driving();
 
 
     return 0;

@@ -1,9 +1,13 @@
 waypoints:
-  filepath: /home/pil/waypoints/track_black1.csv
+  filepath: /home/pil/waypoints/track_black.csv
 
 
 driving:
-  max_look_ahead: 1.5
-  min_look_ahead: 0.5
-  max_speed : 2.5
-  min_speed : 1.0
+  max_look_ahead: 1.2
+  min_look_ahead: 0.7
+  max_speed : 3.5
+  min_speed : 1.8
+
+# DP_angle_proportion should be under 1
+tuning:
+  DP_angle_proportion : 0.2

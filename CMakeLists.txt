@@ -127,7 +127,7 @@ include_directories(
 
 
 add_executable(pure_pursuit_node src/pure_pursuit_node.cpp
-                                 src/pure_pursuit_test.cpp)
+                                 src/pure_pursuit.cpp)
 target_link_libraries(pure_pursuit_node ${catkin_LIBRARIES})
 add_dependencies(pure_pursuit_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

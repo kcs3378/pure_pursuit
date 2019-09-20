@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "pure_pursuit/pure_pursuit_test.h"
+#include "pure_pursuit/pure_pursuit.h"
 
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "nav_msgs/Odometry.h"
@@ -58,6 +58,7 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
     nh_c.getParam("/pure_pursuit/driving/min_look_ahead", lookahead_min);
     nh_c.getParam("/pure_pursuit/driving/max_speed", speed_max);
     nh_c.getParam("/pure_pursuit/driving/min_speed", speed_min);
+    nh_c.getParam("/pure_pursuit/tuning/DP_angle_proportion", dp_angle_proportion);
 
     //subscriber and publisher
     sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
@@ -162,8 +163,8 @@ Set the wp_index_current to nearest waypoint from the car
 */
 void Pure_pursuit::find_nearest_wp()
 {
-    double nearest_distance;
     double temp_distance;
+    Point transformed_nearest_point;
 
     int wp_index_temp = wp_index_current;    
 
@@ -184,6 +185,10 @@ void Pure_pursuit::find_nearest_wp()
         }
         else if(temp_distance > (nearest_distance + CURRENT_WP_CHECK_OFFSET) || (wp_index_temp == wp_index_current)){ break; } 
     }
+
+    //check the position (right or left) of the path from the car position
+    transformed_nearest_point = transformPoint(current_position, waypoints[wp_index_current]);
+    if(transformed_nearest_point.x < 0) nearest_distance *= -1;
 
     ROS_INFO("Nearest wp : %dth wp", wp_index_current+1);
     ROS_INFO("WP Position - x:%f   y:%f", waypoints[wp_index_current].x, waypoints[wp_index_current].y);
@@ -248,7 +253,7 @@ void Pure_pursuit::find_desired_wp()
         wp_index_temp++;
     }
     ROS_INFO("desired point : %dth point", wp_index_temp+1);
-    ROS_INFO("lookahead - actual : %f,  desired : %f", actual_lookahead, lookahead_desired);
+ //   ROS_INFO("lookahead - actual : %f,  desired : %f", actual_lookahead, lookahead_desired);
     ROS_INFO("desired x : %f    desired y : %f", desired_point.x, desired_point.y);
 
 }
@@ -271,12 +276,12 @@ void Pure_pursuit::find_path()
         steering_direction = 1;
         ROS_INFO("left cornering");
     }
-    ROS_INFO("path radius : %f     path theta : %f", goal_path_radius, goal_path_theta);
+    ROS_INFO("path radius : %f", goal_path_radius);
 }
 
-void Pure_pursuit::drivingCallback()
+void Pure_pursuit::driving()
 {
-    ROS_INFO("start publishing");
+    ROS_INFO("start driving");
     while(ros::ok())
     {
         ros::spinOnce();
@@ -297,7 +302,7 @@ void Pure_pursuit::drivingCallback()
         pub_ack.publish(pub_driving_msg);
 
         ROS_INFO("send speed %f, servo %f", pub_driving_msg.drive.speed, pub_driving_msg.drive.steering_angle);
-
+        
         std::cout<<std::endl;
 
         loop_rate.sleep();
@@ -310,20 +315,33 @@ void Pure_pursuit::setSteeringAngle()
 {
 
     steering_angle = atan( RACECAR_LENGTH / goal_path_radius );
-    ROS_INFO("steering angle : %f", steering_angle);
+//    ROS_INFO("steering angle : %f", steering_angle);
     pub_driving_msg.drive.steering_angle = (double)steering_direction * steering_angle;
 
-/*    
-    if(steering_direction == -1)
-    {
-        pub_driving_msg.drive.steering_angle = -goal_path_theta*0.5;
+    tuneSteeringAngle();  
+}
+
+void Pure_pursuit::tuneSteeringAngle()
+{
+    double steering_slope;
+    double controlled_slope;
+
+    if(( nearest_distance > 0 && transformed_desired_point.theta < (PI/2) ) || ( nearest_distance < 0 && transformed_desired_point.theta > (PI/2) ))
+    {/*codes when the right cornering with right path, left cornering with left path*/
+        ROS_INFO("angle tunning X");
     }
     else
     {
-        pub_driving_msg.drive.steering_angle = goal_path_theta*0.5;
-    }
-*/  
+        steering_slope = PI/2 - pub_driving_msg.drive.steering_angle;
+        controlled_slope = dp_angle_proportion * transformed_desired_point.theta + (1 - dp_angle_proportion) * steering_slope;
+    
+        ROS_INFO("original steering angle : %f", pub_driving_msg.drive.steering_angle);
 
+        pub_driving_msg.drive.steering_angle = PI/2 - controlled_slope;
+    }
+    ROS_INFO("DP slope : %f ST slope : %f", transformed_desired_point.theta, steering_slope);
+    ROS_INFO("controlled slope : %f", controlled_slope);
+    
 }
 
 void Pure_pursuit::setSpeed()

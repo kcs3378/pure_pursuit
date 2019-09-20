@@ -1,5 +1,5 @@
-#ifndef __HEADER_pure_pursuit_test_
-#define __HEADER_pure_pursuit_test_
+#ifndef __HEADER_pure_pursuit_
+#define __HEADER_pure_pursuit_
 
 #include <fstream>
 #include <string.h>
@@ -40,6 +40,7 @@ private:
     Point * waypoints;
 
     //for driving
+    double nearest_distance;
     double lookahead_max;
     double lookahead_min;
     double lookahead_desired;
@@ -53,6 +54,8 @@ private:
     double goal_path_radius;
     int steering_direction; //-1 : right, 1 : left
     double steering_angle;
+
+    double dp_angle_proportion;
 
     ackermann_msgs::AckermannDriveStamped pub_driving_msg;
 
@@ -73,8 +76,9 @@ public:
     void get_lookahead_desired();
     void find_desired_wp();
     void find_path();
-    void drivingCallback();
+    void driving();
     void setSteeringAngle();
+    void tuneSteeringAngle();
     void setSpeed();
 };
 
