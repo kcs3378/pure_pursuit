@@ -3,10 +3,12 @@
 
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "nav_msgs/Odometry.h"
+#include "visualization_msgs/Marker.h"
 
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <sstream>
 #include <cmath>
 
 namespace pure_pursuit
@@ -42,7 +44,7 @@ Point transformPoint(Point origin_point, Point target_point)
 
 
 Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
-:nh_c(h), loop_rate(60), wp_index_current(0)
+:nh_c(h), loop_rate(100), wp_index_current(0)
 {
     ROS_INFO("STARTING NODE");
     //set waypoint scv file path from ros parameter
@@ -59,10 +61,15 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
     nh_c.getParam("/pure_pursuit/driving/max_speed", speed_max);
     nh_c.getParam("/pure_pursuit/driving/min_speed", speed_min);
     nh_c.getParam("/pure_pursuit/tuning/DP_angle_proportion", dp_angle_proportion);
+    nh_c.getParam("/pure_pursuit/driving/manual_speed_control/mux_size", MSC_MuxSize);
+
+    //get Manual Speed
+    get_manualspeed();
 
     //subscriber and publisher
     sub_pf_odom = nh_c.subscribe("/pf/pose/odom", 10, &Pure_pursuit::subCallback_odom, this);
     pub_ack = nh_c.advertise<ackermann_msgs::AckermannDriveStamped>("/vesc/high_level/ackermann_cmd_mux/input/nav_1", 5);
+    pub_dp_mark = nh_c.advertise<visualization_msgs::Marker>("/desired_point/marker", 0);
 
     pub_driving_msg.header.stamp = ros::Time::now();
     pub_driving_msg.header.frame_id = "base_link";
@@ -78,6 +85,7 @@ Pure_pursuit::~Pure_pursuit()
 {
     delete []filepath;
     delete []waypoints;
+    delete []ManualSpeedArray;
 }
 
 void Pure_pursuit::get_waypoint()
@@ -114,6 +122,40 @@ void Pure_pursuit::get_waypoint()
     ROS_INFO("FINISH PRINTING WAYPOINTS");
 
 }
+
+//get manully controlled speed data array from rosparam
+void Pure_pursuit::get_manualspeed()
+{
+    ManualSpeedArray = new ManualSpeed[MSC_MuxSize];
+    int i=0;
+    std::string str_temp;
+    for(i=0; i<MSC_MuxSize; i++)
+    {
+        std::stringstream ss;
+        ss << (i+1);
+        str_temp = ss.str();
+
+        std::string region = "/region_";
+        region.append(str_temp);
+        std::string starting_wp;
+        std::string ending_wp;
+        std::string max_speed;
+        std::string min_speed;
+
+        starting_wp = "/pure_pursuit/driving/manual_speed_control" + region + "/starting_wp";
+        ending_wp = "/pure_pursuit/driving/manual_speed_control" + region + "/ending_wp";
+        max_speed = "/pure_pursuit/driving/manual_speed_control" + region + "/max_speed";
+        min_speed = "/pure_pursuit/driving/manual_speed_control" + region + "/min_speed";
+
+        nh_c.getParam(starting_wp, ManualSpeedArray[i].starting_wp);
+        nh_c.getParam(ending_wp, ManualSpeedArray[i].ending_wp);
+        nh_c.getParam(max_speed, ManualSpeedArray[i].max_speed);
+        nh_c.getParam(min_speed, ManualSpeedArray[i].min_speed);
+
+    }
+}
+
+
 
 void Pure_pursuit::count_waypoint()
 {
@@ -246,6 +288,10 @@ void Pure_pursuit::find_desired_wp()
         distance = getDistance(waypoints[wp_index_temp], current_position);
         if(distance >= lookahead_desired)
         {
+            if(wp_index_temp-2 >= 0 && wp_index_temp+2 < num_points)
+            {
+                waypoints[wp_index_temp].theta = atan((waypoints[wp_index_temp+2].y-waypoints[wp_index_temp-2].y)/(waypoints[wp_index_temp+2].x-waypoints[wp_index_temp-2].x));
+            }
             desired_point = waypoints[wp_index_temp];
             actual_lookahead = distance;
             break;
@@ -291,7 +337,9 @@ void Pure_pursuit::driving()
         ROS_INFO("dx value = %f,  abs(dx) %f", dx, fabs(dx));
         get_lookahead_desired();
         find_desired_wp();
-        
+
+        publishDPmarker();
+
         transformed_desired_point = transformPoint(current_position, desired_point);
 
         ROS_INFO("tfpoint - x : %f      y : %f", transformed_desired_point.x, transformed_desired_point.y);
@@ -303,6 +351,7 @@ void Pure_pursuit::driving()
 
         ROS_INFO("send speed %f, servo %f", pub_driving_msg.drive.speed, pub_driving_msg.drive.steering_angle);
         
+
         std::cout<<std::endl;
 
         loop_rate.sleep();
@@ -313,12 +362,11 @@ void Pure_pursuit::driving()
 
 void Pure_pursuit::setSteeringAngle()
 {
-
+    tuneSteeringAngle();
     steering_angle = atan( RACECAR_LENGTH / goal_path_radius );
 //    ROS_INFO("steering angle : %f", steering_angle);
     pub_driving_msg.drive.steering_angle = (double)steering_direction * steering_angle;
 
-    tuneSteeringAngle();  
 }
 
 void Pure_pursuit::tuneSteeringAngle()
@@ -332,12 +380,14 @@ void Pure_pursuit::tuneSteeringAngle()
     }
     else
     {
-        steering_slope = PI/2 - pub_driving_msg.drive.steering_angle;
+//        steering_slope = PI/2 - pub_driving_msg.drive.steering_angle;
+        steering_slope = PI/2 - 2 * asin(actual_lookahead/(2*goal_path_radius));
         controlled_slope = dp_angle_proportion * transformed_desired_point.theta + (1 - dp_angle_proportion) * steering_slope;
     
-        ROS_INFO("original steering angle : %f", pub_driving_msg.drive.steering_angle);
+        ROS_INFO("original goal path radius : %f", goal_path_radius);
+        goal_path_radius = actual_lookahead/(2*sin(PI/4 - controlled_slope/2));
 
-        pub_driving_msg.drive.steering_angle = PI/2 - controlled_slope;
+//        pub_driving_msg.drive.steering_angle = PI/2 - controlled_slope;
     }
     ROS_INFO("DP slope : %f ST slope : %f", transformed_desired_point.theta, steering_slope);
     ROS_INFO("controlled slope : %f", controlled_slope);
@@ -346,7 +396,49 @@ void Pure_pursuit::tuneSteeringAngle()
 
 void Pure_pursuit::setSpeed()
 {
-    pub_driving_msg.drive.speed = exp(-(DX_GAIN*fabs(dx)-log(speed_max - speed_min))) + speed_min;
+    double controlled_speed_max;
+    double controlled_speed_min;
+    int i;
+    controlled_speed_max = speed_max;
+    controlled_speed_min = speed_min;
+    for(i = 0; i<MSC_MuxSize; i++)
+    {
+        if((wp_index_current > ManualSpeedArray[i].starting_wp) && (wp_index_current < ManualSpeedArray[i].ending_wp))
+        {
+            ROS_INFO("%dth region speed control", i+1);
+            controlled_speed_max = ManualSpeedArray[i].max_speed;
+            controlled_speed_min = ManualSpeedArray[i].min_speed;
+            break;
+        }
+    }
+
+    pub_driving_msg.drive.speed = exp(-(DX_GAIN*fabs(dx)-log(controlled_speed_max - controlled_speed_min))) + controlled_speed_min;
+}
+
+void Pure_pursuit::publishDPmarker()
+{
+    Dp_Marker.header.frame_id = "map";
+    Dp_Marker.header.stamp = ros::Time();
+    Dp_Marker.ns = "pure_pursuit";
+    Dp_Marker.id = 1;
+    Dp_Marker.type = visualization_msgs::Marker::SPHERE;
+    Dp_Marker.action = visualization_msgs::Marker::ADD;
+    Dp_Marker.pose.position.x = desired_point.x;
+    Dp_Marker.pose.position.y = desired_point.y;
+    Dp_Marker.pose.position.z = 0.1;
+    Dp_Marker.pose.orientation.x = 0.0;
+    Dp_Marker.pose.orientation.y = 0.0;
+    Dp_Marker.pose.orientation.z = 0.0;
+    Dp_Marker.pose.orientation.w = 1.0;
+    Dp_Marker.scale.x = 0.1;
+    Dp_Marker.scale.y = 0.1;
+    Dp_Marker.scale.z = 0.1;
+    Dp_Marker.color.a = 1.0; // Don't forget to set the alpha!
+    Dp_Marker.color.r = 1.0;
+    Dp_Marker.color.g = 0.0;
+    Dp_Marker.color.b = 0.0;
+    //only if using a MESH_RESOURCE marker type:
+    pub_dp_mark.publish( Dp_Marker );
 }
 
 

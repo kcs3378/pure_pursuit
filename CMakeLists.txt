@@ -8,6 +8,7 @@ project(pure_pursuit)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  visualization_msgs
   ackermann_msgs
   roscpp
   std_msgs
@@ -75,6 +76,7 @@ generate_messages(
   ackermann_msgs
   std_msgs
   nav_msgs
+  visualization_msgs
 )
 
 ################################################
@@ -109,7 +111,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES pure_pursuit
-  CATKIN_DEPENDS roscpp ackermann_msgs std_msgs nav_msgs
+  CATKIN_DEPENDS roscpp ackermann_msgs std_msgs nav_msgs visualization_msgs
 #  DEPENDS system_lib
 )
 

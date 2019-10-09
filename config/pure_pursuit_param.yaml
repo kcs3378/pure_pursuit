@@ -1,13 +1,30 @@
 waypoints:
-  filepath: /home/pil/waypoints/track_black.csv
+  filepath: /home/pil/waypoints/1005_out.csv
 
 
 driving:
-  max_look_ahead: 1.2
-  min_look_ahead: 0.7
+  max_look_ahead: 2.0
+  min_look_ahead: 0.8
   max_speed : 3.5
-  min_speed : 1.8
+  min_speed : 2.0
+  manual_speed_control:
+    mux_size: 0
+    region_1:
+      starting_wp : 0
+      ending_wp : 530
+      max_speed : 6.0
+      min_speed : 4.0
+    region_2:
+      starting_wp : 531
+      ending_wp : 700
+      max_speed : 2.0
+      min_speed : 1.8
+    region_3:
+      starting_wp : 701
+      ending_wp : 880
+      max_speed : 5.5
+      min_speed : 4.0
 
 # DP_angle_proportion should be under 1
 tuning:
-  DP_angle_proportion : 0.2
+  DP_angle_proportion : 0.0

@@ -5,9 +5,10 @@
 #include <string.h>
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "nav_msgs/Odometry.h"
+#include "visualization_msgs/Marker.h"
 
 #define PI 3.141592
-#define CURRENT_WP_CHECK_OFFSET 10
+#define CURRENT_WP_CHECK_OFFSET 2
 #define DX_GAIN 2.5
 #define RACECAR_LENGTH 0.325
 
@@ -20,6 +21,12 @@ typedef struct _Point{
     double theta;
 } Point;
 
+typedef struct _Manual_speed{
+    int starting_wp;
+    int ending_wp;
+    double max_speed;
+    double min_speed;
+} ManualSpeed;
 
 class Pure_pursuit
 {
@@ -28,6 +35,12 @@ private:
     ros::Rate loop_rate;
     ros::Subscriber sub_pf_odom;
     ros::Publisher pub_ack;
+    ros::Publisher pub_current_mark;
+    ros::Publisher pub_dp_mark;
+
+    //for rviz marker
+    visualization_msgs::Marker Currnet_Marker;
+    visualization_msgs::Marker Dp_Marker;
 
     //for csv file
     std::fstream fs;
@@ -38,6 +51,10 @@ private:
     //for waypoints
     int num_points;
     Point * waypoints;
+
+    //for manual speed control
+    int MSC_MuxSize;
+    ManualSpeed *ManualSpeedArray;
 
     //for driving
     double nearest_distance;
@@ -68,6 +85,7 @@ public:
     Pure_pursuit(const ros::NodeHandle h);
     ~Pure_pursuit();
     void get_waypoint();
+    void get_manualspeed();
     void count_waypoint();
     void subCallback_odom(const nav_msgs::Odometry::ConstPtr& msg_sub);
     void find_nearest_wp();
@@ -80,6 +98,7 @@ public:
     void setSteeringAngle();
     void tuneSteeringAngle();
     void setSpeed();
+    void publishDPmarker();
 };
 
 double getDistance(Point A, Point B);
