@@ -1,0 +1,60 @@
+waypoints:
+  filepath: /home/nvidia/waypoints/nyc_3.csv
+
+
+driving:
+  max_look_ahead: 2.2
+  min_look_ahead: 1.3
+  max_speed : 3.5
+  min_speed : 2.0
+  manual_speed_control:
+    mux_size: 9
+    region_1:
+      starting_wp : 0
+      ending_wp : 40
+      max_speed : 3.0
+      min_speed : 2.5
+    region_2:
+      starting_wp : 41
+      ending_wp : 120
+      max_speed : 3.0
+      min_speed : 2.5
+    region_3:
+      starting_wp : 121
+      ending_wp : 180
+      max_speed : 3.5
+      min_speed : 3.0
+    region_4:
+      starting_wp : 181
+      ending_wp : 270
+      max_speed : 5.0
+      min_speed : 3.8
+    region_5:
+      starting_wp : 271
+      ending_wp : 380
+      max_speed : 5.2
+      min_speed : 4.0
+    region_6:
+      starting_wp : 381
+      ending_wp : 450
+      max_speed : 3.5
+      min_speed : 2.8
+    region_7:
+      starting_wp : 451
+      ending_wp : 530
+      max_speed : 2.5
+      min_speed : 1.8
+    region_8:
+      starting_wp : 531
+      ending_wp : 570
+      max_speed : 4.5
+      min_speed : 3.0
+    region_9:
+      starting_wp : 571
+      ending_wp : 777
+      max_speed : 5.5
+      min_speed : 4.0
+
+# DP_angle_proportion should be under 1
+tuning:
+  DP_angle_proportion : 0.0

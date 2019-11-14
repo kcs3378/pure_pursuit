@@ -79,6 +79,7 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
     pub_driving_msg.drive.steering_angle = 0;
     pub_driving_msg.drive.steering_angle_velocity = 1;
 
+    time_now = ros::Time::now();
 }
 
 Pure_pursuit::~Pure_pursuit()
@@ -330,6 +331,8 @@ void Pure_pursuit::driving()
     ROS_INFO("start driving");
     while(ros::ok())
     {
+	time_pre = time_now;
+
         ros::spinOnce();
         pub_driving_msg.header.stamp = ros::Time::now();
         find_nearest_wp();
@@ -351,6 +354,10 @@ void Pure_pursuit::driving()
 
         ROS_INFO("send speed %f, servo %f", pub_driving_msg.drive.speed, pub_driving_msg.drive.steering_angle);
         
+	time_now = ros::Time::now();
+	calc_cycle = time_now - time_pre;
+
+	ROS_INFO("Cycle : %f", calc_cycle);
 
         std::cout<<std::endl;
 
@@ -362,7 +369,7 @@ void Pure_pursuit::driving()
 
 void Pure_pursuit::setSteeringAngle()
 {
-    tuneSteeringAngle();
+//    tuneSteeringAngle();
     steering_angle = atan( RACECAR_LENGTH / goal_path_radius );
 //    ROS_INFO("steering angle : %f", steering_angle);
     pub_driving_msg.drive.steering_angle = (double)steering_direction * steering_angle;

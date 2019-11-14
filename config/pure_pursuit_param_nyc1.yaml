@@ -1,5 +1,5 @@
 waypoints:
-  filepath: /home/nvidia/waypoints/waypoints.csv
+  filepath: /home/nvidia/waypoints/nyc_1.csv
 
 
 driving:
@@ -8,7 +8,7 @@ driving:
   max_speed : 3.5
   min_speed : 2.0
   manual_speed_control:
-    mux_size: 0
+    mux_size: 8
     region_1:
       starting_wp : 0
       ending_wp : 120

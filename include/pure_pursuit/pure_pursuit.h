@@ -80,6 +80,11 @@ private:
     Point current_position;
     int wp_index_current;
 
+    //time
+    ros::Time time_now;
+    ros::Time time_pre;
+    ros::Duration calc_cycle;
+
 
 public:
     Pure_pursuit(const ros::NodeHandle h);
