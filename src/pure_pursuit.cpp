@@ -62,6 +62,7 @@ Pure_pursuit::Pure_pursuit(const ros::NodeHandle h)
     nh_c.getParam("/pure_pursuit/driving/min_speed", speed_min);
     nh_c.getParam("/pure_pursuit/tuning/DP_angle_proportion", dp_angle_proportion);
     nh_c.getParam("/pure_pursuit/driving/manual_speed_control/mux_size", MSC_MuxSize);
+    nh_c.getParam("/pure_pursuit/driving/mu", mu);
 
     //get Manual Speed
     get_manualspeed();
@@ -349,7 +350,8 @@ void Pure_pursuit::driving()
     
         find_path();
         setSteeringAngle();
-        setSpeed();
+//        setSpeed();
+        setSpeed_PossibleMaximumTest();
         pub_ack.publish(pub_driving_msg);
 
         ROS_INFO("send speed %f, servo %f", pub_driving_msg.drive.speed, pub_driving_msg.drive.steering_angle);
@@ -420,6 +422,21 @@ void Pure_pursuit::setSpeed()
     }
 
     pub_driving_msg.drive.speed = exp(-(DX_GAIN*fabs(dx)-log(controlled_speed_max - controlled_speed_min))) + controlled_speed_min;
+}
+
+void Pure_pursuit::setSpeed_PossibleMaximumTest()
+{
+    double test_speed;
+
+    test_speed = sqrt(mu*GRAVITY_ACCELERATION*goal_path_radius);
+    if(test_speed > 6)
+    {
+        setSpeed();
+    }
+    else
+    {
+        pub_driving_msg.drive.speed = test_speed;
+    }
 }
 
 void Pure_pursuit::publishDPmarker()

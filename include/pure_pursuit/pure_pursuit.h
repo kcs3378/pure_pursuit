@@ -11,6 +11,7 @@
 #define CURRENT_WP_CHECK_OFFSET 2
 #define DX_GAIN 2.5
 #define RACECAR_LENGTH 0.325
+#define GRAVITY ACCELERATION 9.81
 
 namespace pure_pursuit
 {
@@ -57,6 +58,7 @@ private:
     ManualSpeed *ManualSpeedArray;
 
     //for driving
+    double mu;			// friction coefficient
     double nearest_distance;
     double lookahead_max;
     double lookahead_min;
@@ -103,6 +105,7 @@ public:
     void setSteeringAngle();
     void tuneSteeringAngle();
     void setSpeed();
+    void setSpeed_PossibleMaximumTest();
     void publishDPmarker();
 };
 

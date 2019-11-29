@@ -3,6 +3,7 @@ waypoints:
 
 
 driving:
+  mu: 1
   max_look_ahead: 2.1
   min_look_ahead: 1.1
   max_speed : 3.5
