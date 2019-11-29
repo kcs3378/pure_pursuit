@@ -11,7 +11,7 @@
 #define CURRENT_WP_CHECK_OFFSET 2
 #define DX_GAIN 2.5
 #define RACECAR_LENGTH 0.325
-#define GRAVITY ACCELERATION 9.81
+#define GRAVITY_ACCELERATION 9.81
 
 namespace pure_pursuit
 {
