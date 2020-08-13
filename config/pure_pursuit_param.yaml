@@ -1,13 +1,13 @@
 waypoints:
-  filepath: /home/nvidia/waypoints/waypoints.csv
-
+  filepath: /home/pilyang/wps/logs/wp_berlin_1.csv
+  
 
 driving:
   mu: 1
-  max_look_ahead: 2.1
-  min_look_ahead: 1.1
-  max_speed : 3.5
-  min_speed : 2.0
+  max_look_ahead: 1.9
+  min_look_ahead: 0.9
+  max_speed : 6.0
+  min_speed : 1.5
   manual_speed_control:
     mux_size: 0
     region_1:

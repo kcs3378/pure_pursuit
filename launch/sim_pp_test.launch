@@ -3,9 +3,9 @@
 
     <node name="pure_pursuit" pkg="pure_pursuit" type="pure_pursuit_node" output="screen">
         <rosparam command="load" file="$(find pure_pursuit)/config/pure_pursuit_param.yaml" />
-        <remap from="/vesc/high_level/ackermann_cmd_mux/input/nav_1" to="/pp/drive" />
-        <remap from="/pf/pose/odom" to="/pp/odom" />
-        <remap from="/scan" to="/pp/scan" />
+        <remap from="/vesc/high_level/ackermann_cmd_mux/input/nav_1" to="/drive" />
+        <remap from="/pf/pose/odom" to="/odom" />
+        <remap from="/scan" to="/scan" />
 
     </node>
 
